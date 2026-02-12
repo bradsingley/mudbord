@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mūdbord</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Battambang&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header__container">
+            <a href="index.html" class="header__logo">Mūdbord</a>
+            <nav class="header__nav" id="nav">
+                <!-- Populated by JS based on auth state -->
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <section class="hero">
+            <h1>Gallery</h1>
+            <p>Create, share, and organize your visual inspiration with others.</p>
+            <button class="btn btn--primary" id="createBoardBtn">Create new board</button>
+        </section>
+
+        <section class="gallery">
+            <h2>Your boards</h2>
+            <div class="gallery__grid" id="boardsGrid">
+                <!-- Boards loaded dynamically -->
+                <div class="gallery__loading" id="loadingIndicator">Loading...</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Create Board Modal -->
+    <div class="modal" id="createBoardModal" hidden>
+        <div class="modal__overlay"></div>
+        <div class="modal__content">
+            <h2>Name your board</h2>
+            <form id="createBoardForm">
+                <div class="form-group">
+                    <label for="boardName">Board Name</label>
+                    <input type="text" id="boardName" name="boardName" required placeholder="Enter board name...">
+                </div>
+                <div class="modal__actions">
+                    <button type="button" class="btn btn--secondary" id="cancelCreateBtn">Cancel</button>
+                    <button type="submit" class="btn btn--primary">Create Board</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Auth Required Modal -->
+    <div class="modal" id="authRequiredModal" hidden>
+        <div class="modal__overlay"></div>
+        <div class="modal__content">
+            <h2>Sign In Required</h2>
+            <p>You need to be signed in to create a board.</p>
+            <div class="modal__actions">
+                <button type="button" class="btn btn--secondary" id="closeAuthModal">Cancel</button>
+                <a href="login.html" class="btn btn--primary">Sign In</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename Board Modal -->
+    <div class="modal" id="renameBoardModal" hidden>
+        <div class="modal__overlay"></div>
+        <div class="modal__content">
+            <h2>Rename board</h2>
+            <form id="renameBoardForm">
+                <div class="form-group">
+                    <label for="newBoardName">Board name</label>
+                    <input type="text" id="newBoardName" name="newBoardName" required placeholder="Enter new name">
+                </div>
+                <div class="modal__actions">
+                    <button type="button" class="btn btn--secondary" id="cancelRenameBtn">Cancel</button>
+                    <button type="submit" class="btn btn--primary">Rename</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Board Modal -->
+    <div class="modal" id="deleteBoardModal" hidden>
+        <div class="modal__overlay"></div>
+        <div class="modal__content">
+            <h2>Delete board?</h2>
+            <p>This will permanently delete this board and all its images. This action cannot be undone.</p>
+            <div class="modal__actions">
+                <button type="button" class="btn btn--secondary" id="cancelDeleteBtn">Cancel</button>
+                <button type="button" class="btn btn--primary" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/supabase.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/boards.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
