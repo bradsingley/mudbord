@@ -43,7 +43,7 @@ async function signIn(email, password) {
 /** Sign out the current user */
 async function signOut() {
     _userPromise = null;
-    const result = await api('/auth/sign-out', { method: 'POST' });
+    const result = await api('/auth/sign-out', { method: 'POST', body: {} });
     return { error: result.error };
 }
 
