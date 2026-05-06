@@ -240,7 +240,7 @@ function setupUpload(boardId) {
             // Add new images to the board
             uploadedImages.forEach(imageData => {
                 // Add uploader name
-                imageData.uploaderName = currentUser?.name || 'Anonymous';
+                imageData.uploaderName = currentUser?.user_metadata?.display_name || 'Anonymous';
                 
                 const imgEl = createImageElement(imageData, true);
                 makeDraggable(imgEl, async (id, x, y, z) => {

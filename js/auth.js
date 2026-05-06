@@ -1,125 +1,111 @@
 /**
  * Authentication Module
- * Handles user signup, signin, signout, and session management
+ * Wraps better-auth endpoints exposed by lab-api.
+ *
+ * Endpoints:
+ *   POST /auth/sign-up/email   { email, password, name }
+ *   POST /auth/sign-in/email   { email, password }
+ *   POST /auth/sign-out
+ *   GET  /me                   -> { user: { id, email, name } | null }
  */
+
+// Cache the current session for the duration of a page load to avoid hammering /me.
+let _userPromise = null;
 
 /**
  * Sign up a new user
- * @param {string} email - User email
- * @param {string} password - User password
- * @param {string} displayName - User display name
- * @returns {Promise<{data: object, error: object}>}
+ * @param {string} email
+ * @param {string} password
+ * @param {string} displayName
+ * @returns {Promise<{data: object|null, error: object|null}>}
  */
 async function signUp(email, password, displayName) {
-    const { data, error } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-            data: {
-                display_name: displayName
-            }
-        }
+    _userPromise = null;
+    return api('/auth/sign-up/email', {
+        method: 'POST',
+        body: { email, password, name: displayName || (email || '').split('@')[0] },
     });
-    
-    return { data, error };
 }
 
 /**
  * Sign in an existing user
- * @param {string} email - User email
- * @param {string} password - User password
- * @returns {Promise<{data: object, error: object}>}
+ * @param {string} email
+ * @param {string} password
  */
 async function signIn(email, password) {
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
+    _userPromise = null;
+    return api('/auth/sign-in/email', {
+        method: 'POST',
+        body: { email, password },
     });
-    
-    return { data, error };
 }
 
-/**
- * Sign out the current user
- * @returns {Promise<{error: object}>}
- */
+/** Sign out the current user */
 async function signOut() {
-    const { error } = await supabaseClient.auth.signOut();
-    return { error };
+    _userPromise = null;
+    const result = await api('/auth/sign-out', { method: 'POST' });
+    return { error: result.error };
 }
 
 /**
- * Get the current logged-in user
- * @returns {Promise<object|null>}
+ * Get the current logged-in user, or null if not signed in.
+ * Result is cached per page load.
  */
 async function getCurrentUser() {
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    return user;
-}
-
-/**
- * Get the current session
- * @returns {Promise<object|null>}
- */
-async function getSession() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    return session;
-}
-
-/**
- * Get user profile by ID
- * @param {string} userId - User UUID
- * @returns {Promise<object|null>}
- */
-async function getUserProfile(userId) {
-    const { data, error } = await supabaseClient
-        .from(TABLES.PROFILES)
-        .select('*')
-        .eq('id', userId)
-        .single();
-    
-    if (error) {
-        console.error('Error fetching profile:', error);
-        return null;
+    if (!_userPromise) {
+        _userPromise = api('/me').then(({ data, error }) => {
+            if (error || !data) return null;
+            return data.user || null;
+        });
     }
-    
-    return data;
+    return _userPromise;
 }
 
 /**
- * Get current user's display name
- * @returns {Promise<string>}
+ * Get the current user's display name (cached via getCurrentUser).
  */
 async function getCurrentUserDisplayName() {
     const user = await getCurrentUser();
     if (!user) return null;
-    
-    // Try to get from profile first
-    const profile = await getUserProfile(user.id);
-    if (profile?.display_name) {
-        return profile.display_name;
-    }
-    
-    // Fall back to user metadata
-    return user.user_metadata?.display_name || 'Anonymous';
+    return user.name || (user.email || '').split('@')[0] || 'Anonymous';
 }
 
 /**
- * Update the navigation based on auth state
- * @param {HTMLElement} navElement - The navigation container element
+ * Get a user profile by id. Used by images.js to label uploaders.
+ * Profiles are returned by lab-api as part of the /mudbord/* responses
+ * when needed; this helper falls back to a tiny lookup endpoint if you
+ * need a specific user's display name and only have their id.
+ */
+const _profileCache = new Map();
+async function getUserProfile(userId) {
+    if (!userId) return null;
+    if (_profileCache.has(userId)) return _profileCache.get(userId);
+    // lab-api currently returns uploaderName inline on image rows where possible.
+    // For a stand-alone lookup we just resolve from the current user; otherwise null.
+    const me = await getCurrentUser();
+    if (me && me.id === userId) {
+        const profile = { id: me.id, display_name: me.name || (me.email || '').split('@')[0] };
+        _profileCache.set(userId, profile);
+        return profile;
+    }
+    _profileCache.set(userId, null);
+    return null;
+}
+
+/**
+ * Update the navigation based on auth state.
+ * @param {HTMLElement} navElement
  */
 async function updateNav(navElement) {
     if (!navElement) return;
-    
     const user = await getCurrentUser();
-    
+
     if (user) {
         const displayName = await getCurrentUserDisplayName();
         navElement.innerHTML = `
             <span class="header__user">Hi, ${escapeHtml(displayName)}</span>
             <button class="btn btn--ghost btn--sm" id="signOutBtn">Sign Out</button>
         `;
-        
         document.getElementById('signOutBtn')?.addEventListener('click', async () => {
             await signOut();
             window.location.reload();
@@ -132,13 +118,9 @@ async function updateNav(navElement) {
     }
 }
 
-/**
- * Escape HTML to prevent XSS
- * @param {string} text - Text to escape
- * @returns {string}
- */
+/** Escape HTML to prevent XSS */
 function escapeHtml(text) {
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = text == null ? '' : String(text);
     return div.innerHTML;
 }
